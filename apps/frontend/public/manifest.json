@@ -1,10 +1,11 @@
 {
   "name": "Aconser Fichajes",
   "short_name": "Fichajes",
-  "start_url": "/",
+  "start_url": ".",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#0052A5",
+  "background_color": "#0D47A1",
+  "theme_color": "#0D47A1",
+  "description": "Registro de fichajes e imputación de horas a proyectos.",
   "icons": [
     {
       "src": "/icon-192.svg",
