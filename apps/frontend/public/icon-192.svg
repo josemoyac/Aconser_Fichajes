@@ -1,13 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg width="192" height="192" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="192" height="192" viewBox="0 0 192 192"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Icono de Aconser Fichajes</title>
+  <desc id="desc">Letra A estilizada sobre un fondo con degradado azul.</desc>
+
   <defs>
+    <!-- Degradado de fondo -->
     <linearGradient id="bg-gradient" x1="0" y1="0" x2="192" y2="192" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#0D47A1"/>
+      <stop offset="0" stop-color="#0D47A1"/>
       <stop offset="1" stop-color="#42A5F5"/>
     </linearGradient>
   </defs>
+
+  <!-- Fondo redondeado -->
   <rect x="8" y="8" width="176" height="176" rx="40" fill="url(#bg-gradient)"/>
-  <path d="M60 64H96C118.091 64 136 81.9086 136 104C136 126.091 118.091 144 96 144H60V64Z" stroke="white" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="84" cy="104" r="12" fill="white"/>
-  <path d="M96 84C107.046 84 116 92.9543 116 104C116 115.046 107.046 124 96 124" stroke="white" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- “A” estilizada centrada -->
+  <path d="M96 44c-4.2 0-7.9 2.5-9.5 6.4l-38 94.7a10.5 10.5 0 0 0 9.5 14.6h15.8a10.5 10.5 0 0 0 9.7-6.7l5.7-15.3h31.6l5.7 15.3a10.5 10.5 0 0 0 9.7 6.7h15.8a10.5 10.5 0 0 0 9.5-14.6l-38-94.7c-1.6-3.9-5.3-6.4-9.5-6.4zm0 36.4 11.4 30.2H84.6z"
+        fill="#ffffff"/>
 </svg>
+

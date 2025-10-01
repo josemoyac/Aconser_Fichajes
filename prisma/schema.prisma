@@ -1,0 +1,229 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  EMPLOYEE
+}
+
+enum TimeEntryType {
+  IN
+  OUT
+}
+
+enum TimeEntrySource {
+  WEB
+  AUTO
+  ADMIN
+}
+
+enum ShiftStatus {
+  OPEN
+  CLOSED
+  CORRECTED
+}
+
+enum VacationSource {
+  A3
+  LOCAL
+}
+
+enum ProjectSource {
+  BC
+  LOCAL
+}
+
+enum IdempotencyStatus {
+  IN_PROGRESS
+  COMPLETED
+  CANCELED
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  role      Role     @default(EMPLOYEE)
+  oidcSub   String?  @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  permissions EmployeeProjectPermission[]
+  timeEntries TimeEntry[]
+  shifts      Shift[]
+  allocations MonthlyAllocation[]
+  auditLogs   AuditLog[] @relation("AuditActor")
+}
+
+model Project {
+  id         String        @id @default(uuid())
+  externalId String?       @unique
+  code       String
+  name       String
+  active     Boolean       @default(true)
+  source     ProjectSource @default(LOCAL)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  permissions EmployeeProjectPermission[]
+  allocations MonthlyProjectAllocation[]
+}
+
+model EmployeeProjectPermission {
+  id        String  @id @default(uuid())
+  userId    String
+  projectId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Restrict)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, projectId])
+}
+
+model TimeEntry {
+  id              String         @id @default(uuid())
+  userId          String
+  type            TimeEntryType
+  occurredAtUtc   DateTime
+  occurredAtLocal DateTime
+  localDate       String
+  source          TimeEntrySource @default(WEB)
+  idempotencyKey  String?         @unique
+  notes           String?
+  createdBy       String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  shiftsStart     Shift[]         @relation("ShiftStart")
+  shiftsEnd       Shift[]         @relation("ShiftEnd")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId, localDate])
+}
+
+model Shift {
+  id           String      @id @default(uuid())
+  userId       String
+  startEntryId String
+  endEntryId   String?
+  durationMinutes Int? @default(0)
+  status       ShiftStatus @default(OPEN)
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user       User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  startEntry TimeEntry @relation("ShiftStart", fields: [startEntryId], references: [id], onDelete: Restrict)
+  endEntry   TimeEntry? @relation("ShiftEnd", fields: [endEntryId], references: [id])
+
+  @@index([userId, status])
+}
+
+model VacationDay {
+  id           String          @id @default(uuid())
+  userId       String
+  date         String
+  leaveTypeId  String?
+  source       VacationSource @default(A3)
+  externalRef  String?
+  approved     Boolean        @default(false)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  leaveType LeaveType @relation(fields: [leaveTypeId], references: [id])
+
+  @@unique([userId, date])
+  @@index([date])
+}
+
+model LeaveType {
+  id   String @id @default(uuid())
+  code String @unique
+  name String
+  vacations VacationDay[]
+}
+
+model MonthlyAllocation {
+  id          String    @id @default(uuid())
+  userId      String
+  month       String
+  baseHours   Decimal   @db.Decimal(10, 2)
+  extraHours  Decimal   @db.Decimal(10, 2)
+  finalized   Boolean   @default(false)
+  finalizedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user     User                      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  projects MonthlyProjectAllocation[]
+
+  @@unique([userId, month])
+}
+
+model MonthlyProjectAllocation {
+  id                 String   @id @default(uuid())
+  monthlyAllocationId String
+  projectId          String
+  hours              Decimal  @db.Decimal(10, 2)
+
+  allocation MonthlyAllocation @relation(fields: [monthlyAllocationId], references: [id], onDelete: Restrict)
+  project    Project           @relation(fields: [projectId], references: [id], onDelete: Restrict)
+
+  @@unique([monthlyAllocationId, projectId])
+}
+
+model AuditLog {
+  id           String   @id @default(uuid())
+  actorUserId  String?
+  action       String
+  entity       String
+  entityId     String
+  before       String?
+  after        String?
+  ip           String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+
+  actor User? @relation("AuditActor", fields: [actorUserId], references: [id])
+
+  @@index([entity, entityId, createdAt])
+}
+
+model Settings {
+  id                 String  @id @default("settings")
+  timezone           String  @default("Europe/Madrid")
+  retroEditDaysLimit Int     @default(30)
+  auditRetentionDays Int     @default(365)
+  pwaEnabled         Boolean @default(true)
+  weekendWork        Json?
+  holidaysRegion     String  @default("ES-AN")
+}
+
+model Holiday {
+  id            String  @id @default(uuid())
+  region        String
+  date          String
+  name          String
+  isWorkingDay  Boolean @default(false)
+
+  @@unique([region, date])
+}
+
+model IdempotencyKey {
+  id          String            @id @default(uuid())
+  key         String            @unique
+  requestHash String?
+  responseHash String?
+  status      IdempotencyStatus
+  createdAt   DateTime          @default(now())
+  expiresAt   DateTime
+
+  @@index([expiresAt])
+}

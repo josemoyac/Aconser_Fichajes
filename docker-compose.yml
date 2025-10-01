@@ -1,0 +1,61 @@
+version: '3.9'
+services:
+  postgres:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: aconser
+      POSTGRES_USER: aconser
+      POSTGRES_PASSWORD: aconser
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    env_file: .env
+    depends_on:
+      - postgres
+      - a3-mock
+      - bc-mock
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./apps/backend:/app/apps/backend
+      - ./prisma:/app/prisma
+    command: npm run start:dev --prefix apps/backend
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+    env_file: .env
+    depends_on:
+      - backend
+    ports:
+      - '5173:5173'
+    volumes:
+      - ./apps/frontend:/app/apps/frontend
+    command: npm run dev -- --host 0.0.0.0 --prefix apps/frontend
+  a3-mock:
+    build:
+      context: apps/backend
+      dockerfile: integrations/mocks/a3/Dockerfile
+    ports:
+      - '4000:4000'
+  bc-mock:
+    build:
+      context: apps/backend
+      dockerfile: integrations/mocks/bc/Dockerfile
+    ports:
+      - '4100:4100'
+  otel-collector:
+    image: otel/opentelemetry-collector:0.102.1
+    command: ['--config=/etc/otel-collector-config.yaml']
+    volumes:
+      - ./apps/backend/otel/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - '4317:4317'
+volumes:
+  pgdata:
